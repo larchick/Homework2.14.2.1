@@ -79,10 +79,7 @@ public interface IntegerList {
     // и вернуть его.
     Integer[] toArray();
 
-    void bubbleSort(IntegerList unsortedArray);
-    void sortSelection(IntegerList unsortedArray);
+    public Integer[] sort(Integer[] arr);
 
-    void sortInsertion(IntegerList unsortedArray);
-
-    boolean contains(IntegerList sortedArray, Integer element);
+    public boolean binarySearch(Integer[] arr, Integer item);
 }

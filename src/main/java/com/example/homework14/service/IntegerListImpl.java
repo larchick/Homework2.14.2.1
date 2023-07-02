@@ -1,122 +1,114 @@
 package com.example.homework14.service;
 
+import com.example.homework14.exception.InvalidIndexException;
+import com.example.homework14.exception.NullItemException;
+import com.example.homework14.exception.StorageIsFullException;
+
+import java.util.Arrays;
+
 public class IntegerListImpl implements IntegerList {
 
-    private Integer[] stringList = new Integer[0];
-    private Integer[] buffer_1 = new Integer[0];
+    private Integer[] storage;
+    private int size;
 
+    public IntegerListImpl() {
+        storage = new Integer[10];
+    }
 
+    public IntegerListImpl(int intSize) {
+        storage = new Integer[intSize];
+    }
 
+    private Integer[] grow() {
+        Integer[] tmp = storage;
+        storage = new Integer[storage.length + (storage.length / 2)];
+        for (int i = 0; i < tmp.length; i++) {
+            storage[i] = tmp[i];
+        }
+        return storage;
+    }
 
     @Override
     public Integer add(Integer item) {
-        if (item != null) {
-            buffer_1 = stringList;
-            stringList = new Integer[stringList.length + 1];
-
-            for (int i = 0; i < buffer_1.length; i++) {
-                stringList[i] = buffer_1[i];
-            }
-            stringList[stringList.length - 1] = item;
+        //validateSize();
+        validateItem(item);
+        if (size == storage.length) {
+            grow();
         }
-        return stringList[stringList.length - 1];
-    }
-
-    public Integer add(int index, Integer item) {
-        if (index > stringList.length) {
-            throw new ArrayIndexOutOfBoundsException();
-        } else {
-            buffer_1 = stringList;
-            stringList = new Integer[stringList.length + 1];
-            stringList[index] = item;
-            for (int i = 0; i < stringList.length - 1; i++) {
-                if (i < index) {
-                    stringList[i] = buffer_1[i];
-                } else {
-                    stringList[i + 1] = buffer_1[i];
-                }
-            }
-        }
-
-        return stringList[index];
-    }
-
-    @Override
-    public Integer set(int index, Integer item) {
-        if (index >= stringList.length) {
-            throw new ArrayIndexOutOfBoundsException();
-        } else {
-            stringList[index] = item;
-            return stringList[index];
-        }
-    }
-
-    @Override
-    public Integer remove(Integer item) {
-        int divider = 0;
-        buffer_1 = stringList;
-
-        for (int i = 0; i < stringList.length; i++) {
-            if (stringList[i].equals(item)) {
-                divider = i;
-                stringList = new Integer[stringList.length - 1];
-                break;
-            }
-        }
-
-        if (stringList.length == buffer_1.length) {
-            throw new RuntimeException("Такой элемент отсутствует");
-        }
-
-        for (int j = 0; j < stringList.length; j++) {
-            if (j < divider) {
-                stringList[j] = buffer_1[j];
-            } else {
-                stringList[j] = buffer_1[j + 1];
-            }
-        }
+        storage[size++] = item;
         return item;
     }
 
     @Override
-    public Integer remove(int index) {
-        return null;
+    public Integer add(int index, Integer item) {
+        //validateSize();
+        validateItem(item);
+        validateIndex(index);
+
+        if (size == storage.length) {
+            grow();
+        }
+
+        if (index == size) {
+            storage[size++] = item;
+            return item;
+        }
+        System.arraycopy(storage, index, storage, index + 1, size - index);
+        storage[index] = item;
+        size++;
+
+        return item;
     }
 
+    @Override
+    public Integer set(int index, Integer item) {
+        validateIndex(index);
+        validateItem(item);
+        storage[index] = item;
+        return item;
+    }
+
+    @Override
+    public Integer remove(Integer item) {
+        validateItem(item);
+
+        int index = indexOf(item);
+
+        return remove(index);
+    }
+
+    @Override
+    public Integer remove(int index) {
+        validateIndex(index);
+        Integer item = storage[index];
+
+        if (index != size) {
+            System.arraycopy(storage, index + 1, storage, index, size - index);
+
+        }
+        size--;
+        return item;
+    }
 
     @Override
     public Integer removeByIndex(int index) {
-        if (index >= stringList.length) {
-            throw new ArrayIndexOutOfBoundsException();
-        } else {
-            buffer_1 = stringList;
-            stringList = new Integer[stringList.length - 1];
-
-            for (int j = 0; j < stringList.length; j++) {
-                if (j < index) {
-                    stringList[j] = buffer_1[j];
-                } else {
-                    stringList[j] = buffer_1[j + 1];
-                }
-            }
-        }
-        return buffer_1[index];
+        return null;
     }
 
     @Override
     public boolean contains(Integer item) {
-        for (int i = 0; i < stringList.length; i++) {
-            if (stringList[i].equals(item)) {
-                return true;
-            }
-        }
-        return false;
+
+        Integer[] storageCopy = toArray();
+        sort(storageCopy);
+
+        return binarySearch(storageCopy, item);
+
     }
 
     @Override
     public int indexOf(Integer item) {
-        for (int i = 0; i < stringList.length; i++) {
-            if (stringList[i].equals(item)) {
+        for (int i = 0; i < size; i++) {
+            if (storage[i].equals(item)) {
                 return i;
             }
         }
@@ -125,8 +117,8 @@ public class IntegerListImpl implements IntegerList {
 
     @Override
     public int lastIndexOf(Integer item) {
-        for (int i = stringList.length - 1; i > 0; i--) {
-            if (stringList[i].equals(item)) {
+        for (int i = size - 1; i >= 0; i--) {
+            if (storage[i].equals(item)) {
                 return i;
             }
         }
@@ -135,106 +127,83 @@ public class IntegerListImpl implements IntegerList {
 
     @Override
     public Integer get(int index) {
-        if (index >= stringList.length) {
-            throw new ArrayIndexOutOfBoundsException();
-        }
-        return stringList[index];
+        validateIndex(index);
+        return storage[index];
     }
 
     @Override
     public boolean equals(IntegerList otherList) {
-        if (otherList == null) {
-            throw new RuntimeException("передан null");
-        }
-        if (stringList.length != otherList.size()) {
-            return false;
-        }
-        for (int i = 0; i < stringList.length; i++) {
-            if (!stringList[i].equals(otherList.get(i))) {
-                return false;
-            }
-        }
-
-        return true;
+        return Arrays.equals(this.toArray(), otherList.toArray());
     }
 
     @Override
     public int size() {
-        return stringList.length;
+        return size;
     }
 
     @Override
     public boolean isEmpty() {
-        if (stringList.length == 0) {
-            return true;
-        }
-        return false;
+        return size == 0;
     }
 
     @Override
     public void clear() {
-        stringList = new Integer[0];
+        size = 0;
     }
 
     @Override
     public Integer[] toArray() {
-        Integer[] result = stringList;
-        return result;
+        return Arrays.copyOf(storage, size);
     }
 
-    private void swap(IntegerList array, Integer big, Integer little) {
-        Integer tmp = array.get(big);
-        array.set(big, array.get(little));
-        array.set(little, tmp);
-    }
-
-    @Override
-    public void bubbleSort(IntegerList unsortedArray) {
-        for (int i = 0; i < unsortedArray.size() - 1; i++) {
-            for (int j = 0; j < unsortedArray.size() - 1 - i; j++) {
-                if (unsortedArray.get(j + 1) < unsortedArray.get(j)) {
-                    swap(unsortedArray, j, j + 1);
-                }
-            }
-
+    private void validateItem(Integer item) {
+        if (item == null) {
+            throw new NullItemException();
         }
     }
 
-    public void sortSelection(IntegerList unsortedArray) {
-        for (int i = 0; i < unsortedArray.size() - 1; i++) {
-            int minElementIndex = i;
-            for (int j = i + 1; j < unsortedArray.size(); j++) {
-                if (unsortedArray.get(j) < unsortedArray.get(minElementIndex)) {
-                    minElementIndex = j;
-                }
-            }
-            swap(unsortedArray, i, minElementIndex);
+    private void validateSize() {
+        if (size == storage.length) {
+            throw new StorageIsFullException();
         }
     }
 
-    public void sortInsertion(IntegerList unsortedArray) {
-        for (int i = 1; i < unsortedArray.size(); i++) {
-            int temp = unsortedArray.get(i);
-            int j = i;
-            while (j > 0 && unsortedArray.get(j - 1) >= temp) {
-                unsortedArray.set(j, unsortedArray.get(j - 1));
-                j--;
-            }
-            unsortedArray.set(j, temp);
+    private void validateIndex(int index) {
+        if (index < 0 || index > size) {
+            throw new InvalidIndexException();
         }
     }
 
+    public Integer[] sort(Integer[] arr) {
+        return sortRecursive(arr, arr.length);
+    }
+    private Integer[] sortRecursive(Integer[] arr, int n) {
+        if (n <= 1) {
+            return arr;
+        }
+        sortRecursive(arr, n - 1);
+        int lastElement = arr[n - 1];
+        int j = n - 2;
+        while (j >= 0 && arr[j] > lastElement) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = lastElement;
+        return arr;
+    }
 
-    public boolean contains(IntegerList sortedArray, Integer element) {
+    public boolean binarySearch(Integer[] arr, Integer item) {
         int min = 0;
-        int max = sortedArray.size();
+        int max = arr.length - 1;
+
         while (min <= max) {
             int mid = (min + max) / 2;
 
-            if (element == sortedArray.get(mid)) {
+            if (item == arr[mid]) {
                 return true;
             }
-            if (element < sortedArray.get(mid)) {
+
+            if (item < arr[mid]) {
                 max = mid - 1;
             } else {
                 min = mid + 1;
@@ -242,4 +211,5 @@ public class IntegerListImpl implements IntegerList {
         }
         return false;
     }
+
 }
